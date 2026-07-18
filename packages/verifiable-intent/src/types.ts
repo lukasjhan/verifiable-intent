@@ -314,7 +314,26 @@ export interface VerificationResult {
   checksSkipped: string[];
   l1Claims?: Record<string, unknown>;
   l2Claims?: Record<string, unknown>;
+  /** First mandate pair's L3 claims (back-compat); see {@link pairResults} for all pairs. */
   l3PaymentClaims?: Record<string, unknown>;
   l3CheckoutClaims?: Record<string, unknown>;
+  /** Number of checkout+payment mandate pairs discovered in L2. */
+  mandatePairCount?: number;
+  /** Per-mandate-pair L3 claims, in pairing order. */
+  pairResults?: { l3PaymentClaims?: Record<string, unknown>; l3CheckoutClaims?: Record<string, unknown> }[];
+  /**
+   * Network-enforced constraints (`budget` / `recurrence` / `agent_recurrence`) found across the
+   * payment mandates. A stateless verifier CANNOT enforce these — the caller (payment network)
+   * MUST evaluate them against its own cross-transaction state. Surfaced here, never auto-passed.
+   */
+  networkEnforced?: NetworkEnforcedConstraint[];
+}
+
+/** A network-enforced constraint surfaced for the caller's stateful engine. */
+export interface NetworkEnforcedConstraint {
+  /** Index of the mandate pair whose payment mandate carries this constraint. */
+  pairIndex: number;
+  type: ConstraintType;
+  constraint: Constraint;
 }
 

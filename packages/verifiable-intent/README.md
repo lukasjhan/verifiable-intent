@@ -109,13 +109,36 @@ Two things are intentionally VI-side:
   array positions, which a strict RFC 9901 resolver rejects. Disclosure decoding/digesting still
   goes through core.
 
+## Network-enforced constraints — OUT OF LIBRARY SCOPE
+
+`mandate.payment.budget`, `mandate.payment.recurrence`, and `mandate.payment.agent_recurrence`
+require **cross-transaction state** (cumulative spend, recurrence counters). A stateless verifier
+cannot evaluate them, so **this library does NOT enforce them** — the payment network (the library
+consumer) must, against its own state store.
+
+`verifyChain` surfaces them for you instead of silently passing them:
+
+```ts
+const r = await verifyChain({ l1, l2, l3Payment, resolveIssuerKey, now, l2PaymentSerialized });
+// r.valid === true means the STATELESS checks passed — NOT that the budget is ok.
+for (const { pairIndex, type, constraint } of r.networkEnforced ?? []) {
+  // Feed `constraint` to YOUR stateful engine (e.g. decrement a running budget).
+}
+```
+
+Treat `valid: true` as "signatures, binding, and per-transaction constraints hold"; you still owe
+the stateful check for anything in `networkEnforced`.
+
 ## Status
 
 Implemented: L1/L2/L3 issuance, selective disclosure (`delegate_payload` + nested merchant/item
-refs), split-L3 selective `sd_hash`, single-pair chain verification, and the constraint engine.
+refs), split-L3 selective `sd_hash`, **multi-mandate-pair** chain verification (pairing, mandate-
+smuggling + orphan detection, `card_id` cross-check), and the per-transaction constraint engine.
+Covered by a 55-case unit + e2e suite.
 
-TODO: multi-mandate-pair L2, the full `match_mode: "exact"` line-item semantics, and network-side
-stateful enforcement (budget / recurrence / agent_recurrence are currently recorded as `checked`).
+TODO: the full `match_mode: "exact"` line-item semantics, and a real JWKS resolver
+(`iss`+`kid` → fetch + cache). Stateful budget/recurrence enforcement is intentionally left to the
+caller (see above).
 
 ## License
 

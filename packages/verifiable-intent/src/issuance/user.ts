@@ -89,15 +89,8 @@ export async function issueL2Immediate(params: IssueL2ImmediateParams): Promise<
 // Autonomous mode
 // ---------------------------------------------------------------------------
 
-export interface IssueL2AutonomousParams extends CommonL2Params {
-  /** Agent public key delegated to sign L3 (embedded as each mandate's `cnf`). */
-  agentPublicJwk: Jwk;
-  agentKid?: string;
-  promptSummary?: string;
-  /** Standalone merchant disclosures (constraints reference these by digest). */
-  merchants: Merchant[];
-  /** Standalone acceptable-item disclosures. */
-  acceptableItems: Item[];
+/** One checkout+payment mandate pair within an Autonomous L2. */
+export interface AutonomousPair {
   /** Checkout constraints with inline merchant/item objects (rewritten to digest refs). */
   checkoutConstraints: Constraint[];
   /** Payment constraints with inline merchant objects in `allowed_payees.allowed`. */
@@ -106,8 +99,28 @@ export interface IssueL2AutonomousParams extends CommonL2Params {
   riskData?: Record<string, unknown>;
 }
 
-export async function issueL2Autonomous(params: IssueL2AutonomousParams): Promise<L2> {
-  // 1 & 2. Standalone merchant + item disclosures.
+interface AutonomousCommon extends CommonL2Params {
+  /** Agent public key delegated to sign L3 (embedded as each mandate's `cnf`). */
+  agentPublicJwk: Jwk;
+  agentKid?: string;
+  promptSummary?: string;
+  /** Shared standalone merchant disclosures (constraints reference these by digest). */
+  merchants: Merchant[];
+  /** Shared standalone acceptable-item disclosures. */
+  acceptableItems: Item[];
+}
+
+/** Single-pair Autonomous L2 (the common case). */
+export interface IssueL2AutonomousParams extends AutonomousCommon, AutonomousPair {}
+
+/** Multi-pair Autonomous L2: one L2 authorizing several checkout+payment pairs. */
+export interface IssueL2AutonomousMultiParams extends AutonomousCommon {
+  pairs: AutonomousPair[];
+}
+
+/** Issue an Autonomous L2 authorizing multiple mandate pairs against a shared merchant/item pool. */
+export async function issueL2AutonomousMultiPair(params: IssueL2AutonomousMultiParams): Promise<L2> {
+  // Shared standalone merchant + item disclosures (referenced by every pair's constraints).
   const merchantDiscs = params.merchants.map((m) => createDisclosure(null, m));
   const itemDiscs = params.acceptableItems.map((i) => createDisclosure(null, i));
   const merchantHashes = await hashAll(merchantDiscs);
@@ -117,52 +130,52 @@ export async function issueL2Autonomous(params: IssueL2AutonomousParams): Promis
   if (params.agentKid) agentJwk.kid = params.agentKid;
   const cnf = { jwk: agentJwk };
 
-  // 3. Checkout mandate — rewrite merchant/item allowlists to digest refs.
-  const checkoutConstraints = rewriteConstraints(params.checkoutConstraints, (c) => {
-    if (c.type === CONSTRAINT_TYPE.ALLOWED_MERCHANTS) {
-      c["allowed"] = matchMerchantRefs(asArray(c["allowed"]), params.merchants, merchantHashes);
-    } else if (c.type === CONSTRAINT_TYPE.LINE_ITEMS) {
-      for (const entry of asArray(c["items"]) as Record<string, unknown>[]) {
-        entry["acceptable_items"] = matchItemRefs(
-          asArray(entry["acceptable_items"]),
-          params.acceptableItems,
-          itemHashes,
-        );
+  const pairDiscs: string[] = []; // flat: checkout0, payment0, checkout1, payment1, ...
+  for (const pair of params.pairs) {
+    // Checkout mandate — rewrite merchant/item allowlists to digest refs.
+    const checkoutConstraints = rewriteConstraints(pair.checkoutConstraints, (c) => {
+      if (c.type === CONSTRAINT_TYPE.ALLOWED_MERCHANTS) {
+        c["allowed"] = matchMerchantRefs(asArray(c["allowed"]), params.merchants, merchantHashes);
+      } else if (c.type === CONSTRAINT_TYPE.LINE_ITEMS) {
+        for (const entry of asArray(c["items"]) as Record<string, unknown>[]) {
+          entry["acceptable_items"] = matchItemRefs(asArray(entry["acceptable_items"]), params.acceptableItems, itemHashes);
+        }
       }
-    }
-  });
-  const checkoutDict: CheckoutMandateDict = {
-    vct: VI_VCT.CHECKOUT_OPEN,
-    cnf,
-    constraints: checkoutConstraints,
-  };
-  const checkoutDisc = createDisclosure(null, checkoutDict);
-  const checkoutDiscHash = await hashDisclosure(checkoutDisc);
+    });
+    const checkoutDict: CheckoutMandateDict = { vct: VI_VCT.CHECKOUT_OPEN, cnf, constraints: checkoutConstraints };
+    const checkoutDisc = createDisclosure(null, checkoutDict);
+    const checkoutDiscHash = await hashDisclosure(checkoutDisc);
 
-  // 4. Payment mandate — rewrite payee allowlist, inject reference constraint binding checkout.
-  const paymentConstraints = rewriteConstraints(params.paymentConstraints, (c) => {
-    if (c.type === CONSTRAINT_TYPE.ALLOWED_PAYEES) {
-      c["allowed"] = matchMerchantRefs(asArray(c["allowed"]), params.merchants, merchantHashes);
-    }
-  });
-  paymentConstraints.push({
-    type: CONSTRAINT_TYPE.REFERENCE,
-    conditional_transaction_id: checkoutDiscHash,
-  });
-  const paymentDict: PaymentMandateDict = {
-    vct: VI_VCT.PAYMENT_OPEN,
-    cnf,
-    payment_instrument: params.paymentInstrument,
-    ...(params.riskData ? { risk_data: params.riskData } : {}),
-    constraints: paymentConstraints,
-  };
-  const paymentDisc = createDisclosure(null, paymentDict);
+    // Payment mandate — rewrite payee allowlist, inject reference constraint binding this checkout.
+    const paymentConstraints = rewriteConstraints(pair.paymentConstraints, (c) => {
+      if (c.type === CONSTRAINT_TYPE.ALLOWED_PAYEES) {
+        c["allowed"] = matchMerchantRefs(asArray(c["allowed"]), params.merchants, merchantHashes);
+      }
+    });
+    paymentConstraints.push({ type: CONSTRAINT_TYPE.REFERENCE, conditional_transaction_id: checkoutDiscHash });
+    const paymentDict: PaymentMandateDict = {
+      vct: VI_VCT.PAYMENT_OPEN,
+      cnf,
+      payment_instrument: pair.paymentInstrument,
+      ...(pair.riskData ? { risk_data: pair.riskData } : {}),
+      constraints: paymentConstraints,
+    };
+    const paymentDisc = createDisclosure(null, paymentDict);
+    pairDiscs.push(checkoutDisc, paymentDisc);
+  }
 
-  // Disclosure order matches the reference: merchants, items, checkout, payment.
-  const disclosures = [...merchantDiscs, ...itemDiscs, checkoutDisc, paymentDisc];
-  const mandateDiscs = [checkoutDisc, paymentDisc];
+  // Disclosure order matches the reference: merchants, items, then each pair's checkout+payment.
+  const disclosures = [...merchantDiscs, ...itemDiscs, ...pairDiscs];
+  return finishL2(params, disclosures, pairDiscs, VI_TYP.KB_SD_JWT_KB, params.promptSummary);
+}
 
-  return finishL2(params, disclosures, mandateDiscs, VI_TYP.KB_SD_JWT_KB, params.promptSummary);
+/** Single-pair Autonomous L2 (thin wrapper over {@link issueL2AutonomousMultiPair}). */
+export async function issueL2Autonomous(params: IssueL2AutonomousParams): Promise<L2> {
+  const { checkoutConstraints, paymentConstraints, paymentInstrument, riskData, ...common } = params;
+  return issueL2AutonomousMultiPair({
+    ...common,
+    pairs: [{ checkoutConstraints, paymentConstraints, paymentInstrument, riskData }],
+  });
 }
 
 // ---------------------------------------------------------------------------

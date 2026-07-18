@@ -40,8 +40,11 @@ export { issueL1, type IssueL1Params } from "./issuance/issuer.js";
 export {
   issueL2Immediate,
   issueL2Autonomous,
+  issueL2AutonomousMultiPair,
   type IssueL2ImmediateParams,
   type IssueL2AutonomousParams,
+  type IssueL2AutonomousMultiParams,
+  type AutonomousPair,
 } from "./issuance/user.js";
 export {
   issueL3Payment,
@@ -51,7 +54,7 @@ export {
 } from "./issuance/agent.js";
 
 // Verification & constraints
-export { verifyChain, type VerifyChainParams } from "./verification/chain.js";
+export { verifyChain, type VerifyChainParams, type SplitL3 } from "./verification/chain.js";
 export {
   checkConstraints,
   isKnownConstraint,
