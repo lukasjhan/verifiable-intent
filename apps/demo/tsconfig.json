@@ -4,7 +4,9 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
