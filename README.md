@@ -47,8 +47,9 @@ Working end-to-end. Both flows issue, route selectively, and verify:
 Selective disclosure (`delegate_payload` mandates + nested merchant/item refs), the split-L3
 selective `sd_hash`, single-pair chain verification, and the constraint engine are implemented and
 tested. Remaining `TODO`s: multi-mandate-pair L2 and network-side stateful constraint enforcement
-(budget / recurrence). See `verifiable-intent-정리.md` for the spec digest this is based on.
+(budget / recurrence).
 
 ## License
 
-Apache-2.0, matching the upstream VI reference.
+[Apache-2.0](./LICENSE), matching the upstream
+[`agent-intent/verifiable-intent`](https://github.com/agent-intent/verifiable-intent) reference.
