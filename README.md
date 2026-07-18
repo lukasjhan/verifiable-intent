@@ -17,6 +17,8 @@ agent's commercial actions to a user's delegated purchase intent.
 > Every layer is a plain RFC 9901 SD-JWT; key-binding claims live in each layer's payload, and each
 > layer is signed by the key named in the previous layer's `cnf`.
 
+The library version tracks the spec version it implements — **`0.1.x` implements VI `v0.1-draft`**.
+
 ## Features
 
 - **L1/L2/L3 issuance** in two modes — Immediate (2-layer) and Autonomous (3-layer, agent delegation).

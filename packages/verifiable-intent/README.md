@@ -11,6 +11,8 @@ All SD-JWT mechanics are delegated to [`@sd-jwt/core`](https://www.npmjs.com/pac
 this package adds the VI delegation model on top. ES256 only. Isomorphic (Node 20+ and browsers,
 via WebCrypto — no Node-only dependencies).
 
+> **Versioned to track the spec** — `0.1.x` implements VI `v0.1-draft`. See [Versioning](#versioning).
+
 ```bash
 npm install verifiable-intent
 ```
@@ -38,6 +40,7 @@ npm install verifiable-intent
 - [API reference](#api-reference)
 - [Running the examples](#running-the-examples)
 - [How it maps to @sd-jwt/core](#how-it-maps-to-sd-jwtcore)
+- [Versioning](#versioning)
 
 ## The model in 60 seconds
 
@@ -421,6 +424,13 @@ Two things are intentionally VI-side:
   shares one merchant/item disclosure across constraints, so the same digest appears in multiple
   array positions, which a strict RFC 9901 resolver rejects. Disclosure decoding/digesting still
   goes through core.
+
+## Versioning
+
+The library version tracks the [VI spec](https://github.com/agent-intent/verifiable-intent) version
+it implements. **`0.1.x` implements VI `v0.1-draft`.** Patch releases are library-side changes
+against the same spec draft; the minor/major moves with the spec (e.g. spec `v0.2` → library
+`0.2.x`, spec `v1.0` → library `1.0.0`). See [`CHANGELOG.md`](./CHANGELOG.md).
 
 ## License
 

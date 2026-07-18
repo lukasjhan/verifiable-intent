@@ -1,6 +1,6 @@
 {
   "name": "verifiable-intent",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Layered SD-JWT credential library for Verifiable Intent (VI) — cryptographically binds an AI agent's commercial actions to a user's delegated purchase intent.",
   "keywords": [
     "verifiable-intent",
@@ -35,7 +35,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "sideEffects": false,
   "scripts": {
