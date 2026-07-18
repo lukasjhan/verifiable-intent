@@ -14,9 +14,21 @@ agent's commercial actions to a user's delegated purchase intent.
 > L3  agent  → verifier  (kb-sd-jwt,     ~5min)  split L3a (payment) + L3b (checkout)
 > ```
 >
-> Every layer is a **plain RFC 9901 SD-JWT** — VI does **not** concatenate layers with `~~`
-> (that's an AP2/draft-gco thing). Key-binding claims live in each layer's payload; "key binding"
-> means the layer is signed by the key named in the previous layer's `cnf`.
+> Every layer is a plain RFC 9901 SD-JWT; key-binding claims live in each layer's payload, and each
+> layer is signed by the key named in the previous layer's `cnf`.
+
+## Features
+
+- **L1/L2/L3 issuance** in two modes — Immediate (2-layer) and Autonomous (3-layer, agent delegation).
+- **Selective disclosure** — mandates + nested merchant/item references, and per-recipient L2 views
+  (the merchant sees checkout, the network sees payment).
+- **Split-L3 `sd_hash`** binding each leg to only the L2 view its recipient receives.
+- **Multi-mandate-pair verification** with mandate-smuggling and orphan detection, plus a
+  `card_id` ↔ `payment_instrument` cross-check.
+- **Constraint engine** — eight constraint types, PERMISSIVE/STRICT modes, and `line_items`
+  `match_mode` (minimum/exact).
+- **SD-JWT via [`@sd-jwt/core`](https://www.npmjs.com/package/@sd-jwt/core), ES256 via WebCrypto** —
+  runs in **Node.js and the browser**, no Node-only dependencies.
 
 ## 📖 Usage & API docs
 
@@ -25,6 +37,13 @@ Immediate + Autonomous walkthroughs, `verifyChain`, constraints, selective discl
 and the full API reference. Runnable examples live in
 [`packages/verifiable-intent/examples/`](./packages/verifiable-intent/examples/).
 
+## Modes
+
+- **Immediate** — L1 → L2 (final values) → verify.
+- **Autonomous** — L1 → L2 (constraints + agent delegation) → split L3a/L3b → the network verifies
+  the payment chain + constraints, the merchant verifies the checkout chain, each over only the L2
+  view it receives.
+
 ## Layout
 
 ```
@@ -32,35 +51,15 @@ packages/verifiable-intent/   the npm library  (SD-JWT via @sd-jwt/core, ES256 v
 apps/demo/                     Vite + React demo (in-browser Immediate + Autonomous flows)
 ```
 
-- **[`packages/verifiable-intent/`](./packages/verifiable-intent/)** — the `verifiable-intent` npm
-  library ([usage & API docs](./packages/verifiable-intent/README.md)).
-- **[`apps/demo/`](./apps/demo/)** — the Vite + React demo.
-
-## Getting started
+## Development
 
 ```bash
 pnpm install
-pnpm test         # run the library test suite
+pnpm test         # library test suite
 pnpm build        # build the library (dual ESM/CJS + .d.ts)
 pnpm dev          # start the React demo on http://localhost:5173
 pnpm typecheck    # typecheck every package
 ```
-
-## Status
-
-Working end-to-end. Both flows issue, route selectively, and verify:
-
-- **Immediate** — L1 → L2 (final values) → verify.
-- **Autonomous** — L1 → L2 (constraints + agent delegation) → split L3a/L3b → the network verifies
-  the payment chain + constraints, the merchant verifies the checkout chain, each over only the L2
-  view it receives.
-
-Selective disclosure (`delegate_payload` mandates + nested merchant/item refs), the split-L3
-selective `sd_hash`, **multi-mandate-pair** chain verification (with mandate-smuggling + orphan
-detection and `card_id` cross-check), and the per-transaction constraint engine are implemented and
-covered by a 61-case unit + e2e suite. Network-enforced constraints (budget / recurrence) are
-**surfaced for the caller to enforce statefully** — see the package README. Remaining `TODO`:
-a real JWKS resolver (`iss`+`kid` → fetch + cache).
 
 ## License
 

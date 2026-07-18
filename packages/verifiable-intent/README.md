@@ -15,6 +15,16 @@ via WebCrypto — no Node-only dependencies).
 npm install verifiable-intent
 ```
 
+## Features
+
+- **L1/L2/L3 issuance** — Immediate (2-layer) and Autonomous (3-layer, agent delegation) modes.
+- **Selective disclosure** — mandates + nested merchant/item references, and per-recipient L2 views.
+- **Split-L3 `sd_hash`** binding each leg to only the L2 view its recipient receives.
+- **Multi-mandate-pair verification** — mandate-smuggling and orphan detection, `card_id` cross-check.
+- **Constraint engine** — eight constraint types, PERMISSIVE/STRICT modes, `line_items` `match_mode`.
+- **Runs in Node.js and the browser** — SD-JWT via `@sd-jwt/core`, ES256 via WebCrypto, ESM + CJS,
+  full TypeScript types.
+
 ## Contents
 
 - [The model in 60 seconds](#the-model-in-60-seconds)
@@ -28,7 +38,6 @@ npm install verifiable-intent
 - [API reference](#api-reference)
 - [Running the examples](#running-the-examples)
 - [How it maps to @sd-jwt/core](#how-it-maps-to-sd-jwtcore)
-- [Status](#status)
 
 ## The model in 60 seconds
 
@@ -412,17 +421,6 @@ Two things are intentionally VI-side:
   shares one merchant/item disclosure across constraints, so the same digest appears in multiple
   array positions, which a strict RFC 9901 resolver rejects. Disclosure decoding/digesting still
   goes through core.
-
-## Status
-
-Implemented: L1/L2/L3 issuance, selective disclosure (`delegate_payload` + nested merchant/item
-refs), split-L3 selective `sd_hash`, **multi-mandate-pair** chain verification (pairing, mandate-
-smuggling + orphan detection, `card_id` cross-check), and the per-transaction constraint engine
-(incl. `line_items` `match_mode` minimum/exact + per-id quantity caps). Covered by a 61-case unit +
-e2e suite.
-
-TODO: a real JWKS resolver (`iss`+`kid` → fetch + cache). Stateful budget/recurrence enforcement is
-intentionally left to the caller (see above).
 
 ## License
 
