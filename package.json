@@ -1,0 +1,28 @@
+{
+  "name": "verifiable-intent-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for the Verifiable Intent (VI) SD-JWT credential library and demo",
+  "author": "Lukas.J.Han <lukas.j.han@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukasjhan/verifiable-intent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lukasjhan/verifiable-intent/issues"
+  },
+  "homepage": "https://github.com/lukasjhan/verifiable-intent#readme",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter verifiable-intent build",
+    "dev": "pnpm --filter demo dev",
+    "test": "pnpm --filter verifiable-intent test",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf dist node_modules/.cache"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.28.0"
+}
