@@ -24,5 +24,10 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.28.0"
+  "packageManager": "pnpm@10.28.0",
+  "pnpm": {
+    "overrides": {
+      "esbuild@>=0.27.3 <0.28.1": "^0.28.1"
+    }
+  }
 }
