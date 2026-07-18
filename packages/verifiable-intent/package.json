@@ -46,7 +46,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "example:immediate": "node examples/immediate-flow.ts",
-    "example:autonomous": "node examples/autonomous-flow.ts"
+    "example:autonomous": "node examples/autonomous-flow.ts",
+    "prepublishOnly": "tsc --noEmit && tsup && vitest run"
   },
   "dependencies": {
     "@sd-jwt/core": "^0.20.0"
