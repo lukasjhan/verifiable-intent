@@ -48,10 +48,9 @@ and the full API reference. Runnable examples live in
 
 ## Layout
 
-```
-packages/verifiable-intent/   the npm library  (SD-JWT via @sd-jwt/core, ES256 via WebCrypto)
-apps/demo/                     Vite + React demo (in-browser Immediate + Autonomous flows)
-```
+- **[`packages/verifiable-intent/`](./packages/verifiable-intent/)** — the `verifiable-intent` npm
+  library (SD-JWT via `@sd-jwt/core`, ES256 via WebCrypto). [Usage & API docs](./packages/verifiable-intent/README.md).
+- **[`apps/demo/`](./apps/demo/)** — Vite + React demo (in-browser Immediate + Autonomous flows).
 
 ## Development
 
