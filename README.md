@@ -19,6 +19,9 @@ agent's commercial actions to a user's delegated purchase intent.
 
 The library version tracks the spec version it implements — **`0.1.x` implements VI `v0.1-draft`**.
 
+**🔗 Live demo: [verifiable-intent.vercel.app](https://verifiable-intent.vercel.app)** — a guided,
+in-browser walkthrough of every flow (real ES256 / WebCrypto).
+
 ## Features
 
 - **L1/L2/L3 issuance** in two modes — Immediate (2-layer) and Autonomous (3-layer, agent delegation).
@@ -50,7 +53,7 @@ and the full API reference. Runnable examples live in
 
 - **[`packages/verifiable-intent/`](./packages/verifiable-intent/)** — the `verifiable-intent` npm
   library (SD-JWT via `@sd-jwt/core`, ES256 via WebCrypto). [Usage & API docs](./packages/verifiable-intent/README.md).
-- **[`apps/demo/`](./apps/demo/)** — Vite + React demo (in-browser Immediate + Autonomous flows).
+- **[`apps/demo/`](./apps/demo/)** — Vite + React demo ([live](https://verifiable-intent.vercel.app)).
 
 ## Development
 

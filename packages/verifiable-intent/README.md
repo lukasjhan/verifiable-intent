@@ -17,6 +17,8 @@ via WebCrypto — no Node-only dependencies).
 npm install verifiable-intent
 ```
 
+**🔗 [Live demo](https://verifiable-intent.vercel.app)** — a guided, in-browser walkthrough of every flow.
+
 ## Features
 
 - **L1/L2/L3 issuance** — Immediate (2-layer) and Autonomous (3-layer, agent delegation) modes.
