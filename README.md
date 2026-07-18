@@ -18,12 +18,23 @@ agent's commercial actions to a user's delegated purchase intent.
 > (that's an AP2/draft-gco thing). Key-binding claims live in each layer's payload; "key binding"
 > means the layer is signed by the key named in the previous layer's `cnf`.
 
+## 📖 Usage & API docs
+
+**→ [`packages/verifiable-intent/README.md`](./packages/verifiable-intent/README.md)** — install,
+Immediate + Autonomous walkthroughs, `verifyChain`, constraints, selective disclosure, multi-pair,
+and the full API reference. Runnable examples live in
+[`packages/verifiable-intent/examples/`](./packages/verifiable-intent/examples/).
+
 ## Layout
 
 ```
 packages/verifiable-intent/   the npm library  (SD-JWT via @sd-jwt/core, ES256 via WebCrypto)
 apps/demo/                     Vite + React demo (in-browser Immediate + Autonomous flows)
 ```
+
+- **[`packages/verifiable-intent/`](./packages/verifiable-intent/)** — the `verifiable-intent` npm
+  library ([usage & API docs](./packages/verifiable-intent/README.md)).
+- **[`apps/demo/`](./apps/demo/)** — the Vite + React demo.
 
 ## Getting started
 
