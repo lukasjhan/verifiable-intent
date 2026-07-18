@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayerCard, type Highlight } from "@/components/LayerCard";
+import { FlowBoard } from "@/components/FlowBoard";
 import { cn } from "@/lib/utils";
 import { ACTOR_META, SCENARIOS, type Actor, type Built, type ScenarioDef, type StepMeta } from "@/scenarios";
 
@@ -93,7 +94,12 @@ export function App() {
 
           {/* Main panel */}
           <div className="min-w-0 space-y-5">
-            <ActorBar active={activeActors} transfer={current.transfer} />
+            <FlowBoard
+              stepId={current.id}
+              built={built}
+              active={activeActors}
+              results={current.id === "verify" ? { network: built.networkResult?.valid, merchant: built.merchantResult?.valid } : undefined}
+            />
 
             <div>
               <div className="mb-1 flex items-center gap-2">
@@ -190,31 +196,6 @@ function StepRail({ steps, current, outcome, onJump }: { steps: StepMeta[]; curr
         );
       })}
     </ol>
-  );
-}
-
-function ActorBar({ active, transfer }: { active: Set<Actor>; transfer?: StepMeta["transfer"] }) {
-  const order: Actor[] = ["issuer", "user", "agent", "merchant", "network"];
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {order.map((a) => {
-        const on = active.has(a);
-        const isSource = transfer?.from === a;
-        return (
-          <div
-            key={a}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-all",
-              on ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground opacity-60",
-              isSource && "ring-primary/40 ring-2",
-            )}
-          >
-            <span>{ACTOR_META[a].icon}</span>
-            <span className="font-medium">{ACTOR_META[a].label}</span>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
