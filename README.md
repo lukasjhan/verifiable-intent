@@ -47,9 +47,9 @@ Working end-to-end. Both flows issue, route selectively, and verify:
 Selective disclosure (`delegate_payload` mandates + nested merchant/item refs), the split-L3
 selective `sd_hash`, **multi-mandate-pair** chain verification (with mandate-smuggling + orphan
 detection and `card_id` cross-check), and the per-transaction constraint engine are implemented and
-covered by a 55-case unit + e2e suite. Network-enforced constraints (budget / recurrence) are
-**surfaced for the caller to enforce statefully** — see the package README. Remaining `TODO`s:
-`match_mode: "exact"` line items and a real JWKS resolver.
+covered by a 61-case unit + e2e suite. Network-enforced constraints (budget / recurrence) are
+**surfaced for the caller to enforce statefully** — see the package README. Remaining `TODO`:
+a real JWKS resolver (`iss`+`kid` → fetch + cache).
 
 ## License
 

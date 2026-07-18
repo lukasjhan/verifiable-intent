@@ -143,26 +143,50 @@ function checkAllowlist(
   }
 }
 
+/**
+ * Verify fulfillment line items against a `line_items` constraint (constraints.md §4.2).
+ *
+ * Each `items[]` entry is a line-item requirement: an `acceptable_items` allowlist (empty = any
+ * SKU) plus a per-entry `quantity` cap. `match_mode` controls how fulfillment is matched:
+ *   - "minimum" (default): fulfillment must be a SUBSET — every bought id is acceptable and within
+ *     the total + per-id quantity caps. Buying fewer/none of a requirement is fine.
+ *   - "exact": additionally, every requirement with a non-empty (resolved) allowlist must be
+ *     covered by at least one bought item with quantity > 0.
+ */
 function checkLineItems(c: Record<string, unknown>, f: Fulfillment, result: ConstraintCheckResult): void {
   result.checked.push(CONSTRAINT_TYPE.LINE_ITEMS);
   const items = Array.isArray(c["items"]) ? (c["items"] as Record<string, unknown>[]) : [];
   if (items.length === 0) return fail(result, "line_items constraint must have at least one item entry");
 
+  const matchMode = c["match_mode"] ?? "minimum";
+  if (matchMode !== "minimum" && matchMode !== "exact")
+    return fail(result, `line_items match_mode must be 'minimum' or 'exact', got ${JSON.stringify(matchMode)}`);
+
   const allowedIds = new Set<string>();
+  const idQuantityLimits = new Map<string, number>(); // id -> summed quantity cap across entries
+  const entryIds: Set<string>[] = []; // resolved acceptable ids per entry (for exact coverage)
   let hasWildcard = false;
   let totalQtyLimit = 0;
+
   for (const entry of items) {
     const acceptable = Array.isArray(entry["acceptable_items"]) ? (entry["acceptable_items"] as unknown[]) : [];
     if (acceptable.length === 0) hasWildcard = true;
     const qty = num(entry["quantity"]);
     if (qty === null || qty <= 0) return fail(result, "line_items item quantity must be a positive integer");
     totalQtyLimit += qty;
+
+    const ids = new Set<string>();
     for (const ai of acceptable) {
-      if (isObj(ai) && delegateRefHash(ai) === null) {
-        const id = ai["id"] ?? ai["sku"];
-        if (typeof id === "string") allowedIds.add(id);
+      if (!isObj(ai) || delegateRefHash(ai) !== null) continue; // skip unresolved SD refs
+      if (!isNonEmptyStr(ai["title"])) fail(result, `acceptable item ${String(ai["id"] ?? ai["sku"] ?? "?")} missing required title`);
+      const id = ai["id"] ?? ai["sku"];
+      if (typeof id === "string") {
+        ids.add(id);
+        allowedIds.add(id);
       }
     }
+    for (const id of ids) idQuantityLimits.set(id, (idQuantityLimits.get(id) ?? 0) + qty);
+    entryIds.push(ids);
   }
 
   const lineItems = Array.isArray(f["line_items"]) ? (f["line_items"] as Record<string, unknown>[]) : null;
@@ -170,21 +194,49 @@ function checkLineItems(c: Record<string, unknown>, f: Fulfillment, result: Cons
   if (lineItems.length === 0) return fail(result, "Empty line_items does not satisfy line_items constraint");
 
   let totalQty = 0;
+  const quantityById = new Map<string, number>();
   for (const li of lineItems) {
     const id = (li["id"] ?? li["sku"]) as string | undefined;
-    if (!id) return fail(result, "Line item missing 'id' field");
-    const qty = num(li["quantity"]) ?? 0;
-    if (qty < 0) return fail(result, `Negative quantity for item ${id}`);
-    if (allowedIds.size > 0 && !allowedIds.has(id) && !hasWildcard) {
-      fail(result, `Item ${id} not in acceptable items: ${[...allowedIds].sort().join(", ")}`);
+    if (!id) {
+      fail(result, "Line item missing 'id' field");
+      continue;
     }
+    const qty = num(li["quantity"]) ?? 0;
+    if (qty < 0) {
+      fail(result, `Negative quantity for item ${id}`);
+      continue;
+    }
+    if (allowedIds.size > 0 && !allowedIds.has(id) && !hasWildcard)
+      fail(result, `Item ${id} not in acceptable items: ${[...allowedIds].sort().join(", ")}`);
     totalQty += qty;
+    quantityById.set(id, (quantityById.get(id) ?? 0) + qty);
   }
+
   if (totalQty > totalQtyLimit) fail(result, `Total quantity ${totalQty} exceeds limit ${totalQtyLimit}`);
+  for (const [id, q] of quantityById) {
+    const cap = idQuantityLimits.get(id);
+    if (cap !== undefined && q > cap) fail(result, `Quantity for item ${id} exceeds per-item limit ${cap}`);
+  }
+
+  if (matchMode === "exact") {
+    const missing: string[] = [];
+    for (let i = 0; i < entryIds.length; i++) {
+      const ids = entryIds[i]!;
+      if (ids.size === 0) continue; // wildcard requirement — no specific item to cover
+      if (![...ids].some((id) => (quantityById.get(id) ?? 0) > 0)) {
+        missing.push(`${String(items[i]?.["id"] ?? "?")} (${[...ids].sort().join(", ")})`);
+      }
+    }
+    if (missing.length) fail(result, `match_mode=exact: fulfillment missing required line item(s): ${missing.join("; ")}`);
+  }
 }
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
+}
+
+function isNonEmptyStr(v: unknown): boolean {
+  return typeof v === "string" && v.trim() !== "";
 }
 
 /** Match two merchants by id if both have it, else by name+website. */

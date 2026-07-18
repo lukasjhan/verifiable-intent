@@ -44,6 +44,59 @@ describe("checkConstraints — line_items", () => {
   });
 });
 
+describe("checkConstraints — line_items match_mode + quantity caps", () => {
+  const twoSlots = (mode: "minimum" | "exact"): Constraint => ({
+    type: CONSTRAINT_TYPE.LINE_ITEMS,
+    match_mode: mode,
+    items: [
+      { id: "racket", acceptable_items: [{ id: "R1", title: "Racket 1" }], quantity: 1 },
+      { id: "strings", acceptable_items: [{ id: "S1", title: "String 1" }], quantity: 2 },
+    ],
+  });
+
+  it("minimum accepts a subset (only one slot filled)", () => {
+    expect(checkConstraints([twoSlots("minimum")], { line_items: [{ id: "R1", quantity: 1 }] }).satisfied).toBe(true);
+  });
+
+  it("exact requires every slot covered", () => {
+    // only racket → missing strings
+    const r = checkConstraints([twoSlots("exact")], { line_items: [{ id: "R1", quantity: 1 }] });
+    expect(r.satisfied).toBe(false);
+    expect(r.violations.join(" ")).toMatch(/match_mode=exact.*missing/);
+    // both slots covered → ok
+    expect(checkConstraints([twoSlots("exact")], { line_items: [{ id: "R1", quantity: 1 }, { id: "S1", quantity: 1 }] }).satisfied).toBe(true);
+  });
+
+  it("exact skips wildcard (empty acceptable_items) slots", () => {
+    const wild: Constraint = { type: CONSTRAINT_TYPE.LINE_ITEMS, match_mode: "exact", items: [{ id: "any", acceptable_items: [], quantity: 3 }] };
+    expect(checkConstraints([wild], { line_items: [{ id: "Z", quantity: 1 }] }).satisfied).toBe(true);
+  });
+
+  it("enforces a per-id quantity cap even when the total is within bounds", () => {
+    const c: Constraint = {
+      type: CONSTRAINT_TYPE.LINE_ITEMS,
+      items: [
+        { id: "e1", acceptable_items: [{ id: "A", title: "A" }], quantity: 1 },
+        { id: "e2", acceptable_items: [{ id: "B", title: "B" }], quantity: 5 },
+      ],
+    };
+    // total cap 6; A cap 1. Buying 2×A: total 2 ≤ 6 but A exceeds its per-id cap.
+    const r = checkConstraints([c], { line_items: [{ id: "A", quantity: 2 }] });
+    expect(r.satisfied).toBe(false);
+    expect(r.violations.join(" ")).toMatch(/per-item limit/);
+  });
+
+  it("rejects an invalid match_mode", () => {
+    const c = { type: CONSTRAINT_TYPE.LINE_ITEMS, match_mode: "weird", items: [{ id: "e", acceptable_items: [{ id: "A", title: "A" }], quantity: 1 }] } as unknown as Constraint;
+    expect(checkConstraints([c], { line_items: [{ id: "A", quantity: 1 }] }).satisfied).toBe(false);
+  });
+
+  it("rejects acceptable_items missing a title", () => {
+    const c = { type: CONSTRAINT_TYPE.LINE_ITEMS, items: [{ id: "e", acceptable_items: [{ id: "A" }], quantity: 1 }] } as unknown as Constraint;
+    expect(checkConstraints([c], { line_items: [{ id: "A", quantity: 1 }] }).satisfied).toBe(false);
+  });
+});
+
 describe("checkConstraints — network-enforced are recorded, not evaluated", () => {
   for (const type of [CONSTRAINT_TYPE.BUDGET, CONSTRAINT_TYPE.RECURRENCE, CONSTRAINT_TYPE.AGENT_RECURRENCE, CONSTRAINT_TYPE.REFERENCE]) {
     it(`${type} → checked, satisfied stays true`, () => {

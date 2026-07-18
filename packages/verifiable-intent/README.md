@@ -133,12 +133,12 @@ the stateful check for anything in `networkEnforced`.
 
 Implemented: L1/L2/L3 issuance, selective disclosure (`delegate_payload` + nested merchant/item
 refs), split-L3 selective `sd_hash`, **multi-mandate-pair** chain verification (pairing, mandate-
-smuggling + orphan detection, `card_id` cross-check), and the per-transaction constraint engine.
-Covered by a 55-case unit + e2e suite.
+smuggling + orphan detection, `card_id` cross-check), and the per-transaction constraint engine
+(including `line_items` `match_mode` minimum/exact + per-id quantity caps). Covered by a 61-case
+unit + e2e suite.
 
-TODO: the full `match_mode: "exact"` line-item semantics, and a real JWKS resolver
-(`iss`+`kid` → fetch + cache). Stateful budget/recurrence enforcement is intentionally left to the
-caller (see above).
+TODO: a real JWKS resolver (`iss`+`kid` → fetch + cache). Stateful budget/recurrence enforcement is
+intentionally left to the caller (see above).
 
 ## License
 
